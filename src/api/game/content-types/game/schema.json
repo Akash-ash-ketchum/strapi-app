@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "games",
+  "info": {
+    "singularName": "game",
+    "pluralName": "games",
+    "displayName": "Game"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Title": {
+      "type": "string"
+    },
+    "Channel": {
+      "type": "string"
+    },
+    "PublishedYear": {
+      "type": "integer"
+    }
+  }
+}
