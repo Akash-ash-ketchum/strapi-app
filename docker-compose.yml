@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: strapi
+      POSTGRES_PASSWORD: strapi123
+      POSTGRES_DB: strapi-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - strapi-network
+
+  strapi:
+    build: .
+    container_name: strapi
+    environment:
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: strapi-db
+      DATABASE_USERNAME: strapi
+      DATABASE_PASSWORD: strapi123
+      NODE_ENV: production
+    expose:
+      - "1337"  # only visible to other services in the network
+    depends_on:
+      - postgres
+    networks:
+      - strapi-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - strapi
+    networks:
+      - strapi-network
+
+networks:
+  strapi-network:
+    external: true
+
+volumes:
+  postgres_data:
