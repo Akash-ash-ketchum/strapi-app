@@ -1,7 +1,10 @@
 name: Terraform Deploy (Strapi EC2)
 
 on:
-  workflow_dispatch: # Trigger manually
+  workflow_run:
+    workflows: ["Build and Push Docker Image"]
+    types:
+      - completed
 
 jobs:
   deploy:
