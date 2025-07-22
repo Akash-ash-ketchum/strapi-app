@@ -38,7 +38,7 @@ jobs:
         run: echo "image_tag=${{ steps.vars.outputs.TAG }}" >> image_tag.txt
 
       - name: Upload image tag artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docker-image-tag
           path: image_tag.txt
