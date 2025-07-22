@@ -11,6 +11,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.TAG }}
 
     steps:
       - name: Checkout Code
