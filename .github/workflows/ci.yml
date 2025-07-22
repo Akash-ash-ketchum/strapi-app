@@ -31,7 +31,7 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t $IMAGE_NAME:${{ steps.vars.outputs.TAG }} .
+          docker build -t $IMAGE_NAME:${{ steps.vars.outputs.TAG }} ./my-strapi-app
           docker push $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
 
       - name: Save image tag for Terraform (output)
