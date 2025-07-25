@@ -9,7 +9,6 @@ env:
   AWS_REGION: us-east-2
   ECR_REGISTRY: 607700977843.dkr.ecr.us-east-2.amazonaws.com
   ECR_REPOSITORY: akash-strapi-ecr
-  DOCKER_CONTEXT: ./my-strapi-app
 
 jobs:
   build-and-push:
@@ -36,10 +35,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest $DOCKER_CONTEXT
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./my-strapi-app
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.shortsha.outputs.short_sha }}
 
       - name: Push Docker images to ECR
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.shortsha.outputs.short_sha }}
+
