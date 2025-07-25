@@ -1,45 +1,47 @@
-name: CI - Build and Push Docker Image to ECR
+name: Build and Push Docker Image
 
 on:
   push:
     branches:
       - main
 
-jobs:
-  build-and-push:
-    name: Build and Push to ECR
-    runs-on: ubuntu-latest
+env:
+  IMAGE_NAME: akashashketchum/strapi-ec2
 
-    env:
-      AWS_REGION: us-east-2
-      ECR_REGISTRY: 607700977843.dkr.ecr.us-east-2.amazonaws.com
-      ECR_REPOSITORY: akash-strapi-ecr
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.TAG }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ env.AWS_REGION }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Get short SHA for tag
+        id: vars
+        run: echo "TAG=$(echo ${GITHUB_SHA::7})" >> $GITHUB_OUTPUT
 
-      - name: Get short SHA
-        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
-
-      - name: Build Docker image
+      - name: Build and Push Docker Image
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./my-strapi-app
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA
+          docker build -t $IMAGE_NAME:${{ steps.vars.outputs.TAG }} ./my-strapi-app
+          docker push $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
 
-      - name: Push Docker images to ECR
-        run: |
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA
+      - name: Save image tag for Terraform (output)
+        run: echo "image_tag=${{ steps.vars.outputs.TAG }}" >> image_tag.txt
 
-      - name: Output image tag
-        run: echo "Image pushed with tag: $SHORT_SHA"
+      - name: Upload image tag artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-tag
+          path: image_tag.txt
+
