@@ -43,7 +43,3 @@ jobs:
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.shortsha.outputs.short_sha }}
-
-      - name: Output image tag
-        run: echo "Image pushed with tag: ${{ steps.shortsha.outputs.short_sha }}"
-
