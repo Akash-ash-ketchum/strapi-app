@@ -30,20 +30,20 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Extract short SHA
+      - name: Get short SHA
         id: vars
-        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+        run: echo "TAG=$(echo ${GITHUB_SHA::7})" >> $GITHUB_OUTPUT
 
       - name: Build Docker image
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest $DOCKER_CONTEXT
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.vars.outputs.TAG }}
 
       - name: Push Docker images to ECR
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.vars.outputs.TAG }}
 
       - name: Output tag
-        run: echo "Image pushed with tag: $SHORT_SHA"
+        run: echo "Image pushed with tag: ${{ steps.vars.outputs.TAG }}"
 
