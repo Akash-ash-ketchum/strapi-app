@@ -29,7 +29,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Get short SHA
-        run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
       - name: Build Docker image
         run: |
