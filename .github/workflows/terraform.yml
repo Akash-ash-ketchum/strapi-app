@@ -1,0 +1,58 @@
+name: Deploy Strapi with Terraform
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Enter Docker image tag (e.g., latest or short SHA)"
+        required: true
+        type: string
+
+env:
+  TF_VAR_image_tag: ${{ github.event.inputs.image_tag }}
+  TF_IN_AUTOMATION: true
+  AWS_REGION: us-east-2
+
+jobs:
+  terraform-deploy:
+    name: Terraform Apply (Strapi)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./strapi-terraform-task7
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.4
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -var="db_password=${{ secrets.DB_PASSWORD }}"
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var="db_password=${{ secrets.DB_PASSWORD }}"
+
+      - name: Upload terraform.tfstate as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfstate-artifact
+          path: ./strapi-terraform-task7/terraform.tfstate
+
