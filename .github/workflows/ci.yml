@@ -7,8 +7,8 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
     name: Build and Push to ECR
+    runs-on: ubuntu-latest
 
     env:
       AWS_REGION: us-east-2
@@ -28,20 +28,20 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Extract short SHA
+      - name: Get short SHA
         id: vars
-        run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+        run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker image
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./my-strapi-app
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:${SHORT_SHA}
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.vars.outputs.short_sha }}
 
       - name: Push Docker images to ECR
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${SHORT_SHA}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ steps.vars.outputs.short_sha }}
 
       - name: Output image tag
-        run: echo "Image pushed with tag: $SHORT_SHA"
+        run: echo "✅ Image pushed with tag: ${{ steps.vars.outputs.short_sha }}"
 
