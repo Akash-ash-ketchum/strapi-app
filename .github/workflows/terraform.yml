@@ -54,5 +54,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfstate-artifact
-          path: ./strapi-terraform-task7/terraform.tfstate
+          path: ./terraform8/terraform.tfstate
 
