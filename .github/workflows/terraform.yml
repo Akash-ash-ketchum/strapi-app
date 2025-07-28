@@ -1,4 +1,4 @@
-name: Deploy Strapi with Terraform
+name: Deploy Strapi with Terraform (Task 8 - CloudWatch)
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: ./strapi-terraform-task7
+        working-directory: ./terraform8
 
     steps:
       - name: Checkout code
