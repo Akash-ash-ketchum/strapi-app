@@ -70,5 +70,10 @@ jobs:
             --application-name $CODEDEPLOY_APP \
             --deployment-group-name $CODEDEPLOY_GROUP \
             --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
-            --revision "revisionType=AppSpecContent,appSpecContent={content={\\\"version\\\":1,\\\"Resources\\\":[{\\\"TargetService\\\":{\\\"Type\\\":\\\"AWS::ECS::Service\\\",\\\"Properties\\\":{\\\"TaskDefinition\\\":\\\"${{ steps.register.outputs.task_def_arn }}\\\",\\\"LoadBalancerInfo\\\":{\\\"ContainerName\\\":\\\"strapi\\\",\\\"ContainerPort\\\":1337}}}}]}}" \
-            --description "Blue/Green Deployment from GitHub Actions"
+            --description "Blue/Green Deployment from GitHub Actions"\
+            --revision '{
+              "revisionType": "AppSpecContent",
+              "appSpecContent": {
+                "content": "{\"version\":1,\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ steps.register-task.outputs.taskDefinitionArn }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"strapi\",\"ContainerPort\":1337}}}}]}"
+              }
+            }'
