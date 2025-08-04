@@ -39,7 +39,6 @@ jobs:
         run: |
           docker build -t $ECR_REPO:$IMAGE_TAG ./my-strapi-app
 
-
       - name: Push image to ECR
         run: |
           docker push $ECR_REPO:$IMAGE_TAG
@@ -65,10 +64,15 @@ jobs:
             --query "taskDefinition.taskDefinitionArn" \
             --output text)
           echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
+          echo "taskDefArn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
 
       - name: Create CodeDeploy revision file
         run: |
           cat <<EOF > codedeploy-revision.json
+          {
+            "revisionType": "AppSpecContent",
+            "appSpecContent": {
+              "content": "$(jq -c . <(cat <<APPSPEC
           {
             "version": 1,
             "Resources": [
@@ -86,6 +90,10 @@ jobs:
               }
             ]
           }
+          APPSPEC
+          ))"
+            }
+          }
           EOF
 
       - name: Trigger CodeDeploy deployment
@@ -93,33 +101,6 @@ jobs:
           aws deploy create-deployment \
             --application-name $CODEDEPLOY_APP \
             --deployment-group-name $CODEDEPLOY_GROUP \
+            --revision file://codedeploy-revision.json \
             --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
             --description "Deploy commit $IMAGE_TAG via GitHub Actions"
-            --revision file://<(cat <<EOF
-{
-  "revisionType": "AppSpecContent",
-  "appSpecContent": {
-    "content": "$(cat <<APP_SPEC
-{
-  "version": 1,
-  "Resources": [
-    {
-      "TargetService": {
-        "Type": "AWS::ECS::Service",
-        "Properties": {
-          "TaskDefinition": "$TASK_DEF_ARN",
-          "LoadBalancerInfo": {
-            "ContainerName": "strapi",
-            "ContainerPort": 1337
-          }
-        }
-      }
-    }
-  ]
-}
-APP_SPEC
-)"
-  }
-}
-EOF
-)
