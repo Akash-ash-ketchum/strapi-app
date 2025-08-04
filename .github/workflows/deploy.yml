@@ -62,52 +62,36 @@ jobs:
             --cli-input-json file://taskdef.json \
             --query "taskDefinition.taskDefinitionArn" --output text)
           echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
-          echo "task_def_arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
 
-      - name: Generate AppSpec and Revision content
+      - name: Generate AppSpec file
         run: |
-          TASK_DEF_ARN=${{ env.TASK_DEF_ARN }}
-          cat <<EOF > appspec_content.json
-          {
-            "version": 1,
-            "Resources": [
+          echo "{
+            \"version\": 1,
+            \"Resources\": [
               {
-                "TargetService": {
-                  "Type": "AWS::ECS::Service",
-                  "Properties": {
-                    "TaskDefinition": "${TASK_DEF_ARN}",
-                    "LoadBalancerInfo": {
-                      "ContainerName": "strapi",
-                      "ContainerPort": 1337
+                \"TargetService\": {
+                  \"Type\": \"AWS::ECS::Service\",
+                  \"Properties\": {
+                    \"TaskDefinition\": \"${TASK_DEF_ARN}\",
+                    \"LoadBalancerInfo\": {
+                      \"ContainerName\": \"strapi\",
+                      \"ContainerPort\": 1337
                     }
                   }
                 }
               }
             ]
-          }
-          EOF
+          }" > appspec.json
 
-          # Escape and store the stringified JSON
-          CONTENT_STRING=$(jq -c . < appspec_content.json)
-
-          cat <<EOF > revision.json
-          {
-            "applicationName": "${CODEDEPLOY_APP}",
-            "deploymentGroupName": "${CODEDEPLOY_GROUP}",
-            "deploymentConfigName": "CodeDeployDefault.ECSAllAtOnce",
-            "description": "Blue/Green Deployment from GitHub Actions",
-            "revision": {
-              "revisionType": "AppSpecContent",
-              "appSpecContent": {
-                "content": $CONTENT_STRING
-              }
-            }
-          }
-          EOF
-
+          # Convert AppSpec file to valid JSON string
+          APPSPEC_CONTENT=$(cat appspec.json | jq -Rs .)
+          echo "APPSPEC_CONTENT=$APPSPEC_CONTENT" >> $GITHUB_ENV
 
       - name: Trigger CodeDeploy deployment
         run: |
           aws deploy create-deployment \
-            --cli-input-json file://revision.json
+            --application-name $CODEDEPLOY_APP \
+            --deployment-group-name $CODEDEPLOY_GROUP \
+            --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
+            --revision "revisionType=AppSpecContent,appSpecContent={content=$APPSPEC_CONTENT}"
 
