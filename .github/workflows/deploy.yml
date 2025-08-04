@@ -95,3 +95,31 @@ jobs:
             --deployment-group-name $CODEDEPLOY_GROUP \
             --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
             --description "Deploy commit $IMAGE_TAG via GitHub Actions"
+            --revision file://<(cat <<EOF
+{
+  "revisionType": "AppSpecContent",
+  "appSpecContent": {
+    "content": "$(cat <<APP_SPEC
+{
+  "version": 1,
+  "Resources": [
+    {
+      "TargetService": {
+        "Type": "AWS::ECS::Service",
+        "Properties": {
+          "TaskDefinition": "$TASK_DEF_ARN",
+          "LoadBalancerInfo": {
+            "ContainerName": "strapi",
+            "ContainerPort": 1337
+          }
+        }
+      }
+    }
+  ]
+}
+APP_SPEC
+)"
+  }
+}
+EOF
+)
