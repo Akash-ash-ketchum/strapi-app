@@ -1,0 +1,94 @@
+name: Deploy Strapi to ECS (Blue/Green) Task 12
+
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-2
+  ECR_REPO: 607700977843.dkr.ecr.us-east-2.amazonaws.com/akash-strapi-ecr
+  ECS_CLUSTER: akash-strapi-cluster-task6
+  ECS_SERVICE: akash-strapi-service-task6
+  TASK_FAMILY: akash-strapi-task
+  CODEDEPLOY_APP: akash-strapi-codedeploy-app
+  CODEDEPLOY_GROUP: akash-strapi-deploy-group
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  deploy:
+    name: Deploy with CodeDeploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REPO
+
+      - name: Build Docker image
+        run: |
+          docker build -t $ECR_REPO:$IMAGE_TAG .
+
+      - name: Push image to ECR
+        run: |
+          docker push $ECR_REPO:$IMAGE_TAG
+
+      - name: Prepare new ECS task definition
+        run: |
+          aws ecs describe-task-definition --task-definition $TASK_FAMILY \
+            --query "taskDefinition" > taskdef-full.json
+
+          cat taskdef-full.json | jq \
+            '.containerDefinitions[0].image = "'$ECR_REPO':'$IMAGE_TAG'" |
+            .family = "'$TASK_FAMILY'" |
+            del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredBy, .registeredAt)' \
+            > taskdef.json
+
+      - name: Register updated task definition
+        id: register
+        run: |
+          ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://taskdef.json \
+            --query "taskDefinition.taskDefinitionArn" --output text)
+          echo "TASK_DEF_ARN=$ARN" >> $GITHUB_ENV
+
+      - name: Create CodeDeploy revision file
+        run: |
+          cat <<EOF > codedeploy-revision.json
+          {
+            "version": 1,
+            "Resources": [
+              {
+                "TargetService": {
+                  "Type": "AWS::ECS::Service",
+                  "Properties": {
+                    "TaskDefinition": "${{ env.TASK_DEF_ARN }}",
+                    "LoadBalancerInfo": {
+                      "ContainerName": "strapi",
+                      "ContainerPort": 1337
+                    }
+                  }
+                }
+              }
+            ]
+          }
+          EOF
+
+      - name: Trigger CodeDeploy deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name $CODEDEPLOY_APP \
+            --deployment-group-name $CODEDEPLOY_GROUP \
+            --revision file://codedeploy-revision.json \
+            --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
+            --description "Deploy commit $IMAGE_TAG via GitHub Actions"
