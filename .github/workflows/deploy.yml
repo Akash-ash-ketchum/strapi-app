@@ -37,7 +37,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t $ECR_REPO:$IMAGE_TAG .
+          docker build -t $ECR_REPO:$IMAGE_TAG ./my-strapi-app
+
 
       - name: Push image to ECR
         run: |
