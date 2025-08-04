@@ -66,6 +66,7 @@ jobs:
 
       - name: Generate AppSpec and Revision content
         run: |
+          TASK_DEF_ARN=${{ env.TASK_DEF_ARN }}
           cat <<EOF > appspec_content.json
           {
             "version": 1,
