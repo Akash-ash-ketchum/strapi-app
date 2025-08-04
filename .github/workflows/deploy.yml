@@ -66,6 +66,29 @@ jobs:
 
       - name: Generate AppSpec and Revision content
         run: |
+          cat <<EOF > appspec_content.json
+          {
+            "version": 1,
+            "Resources": [
+              {
+                "TargetService": {
+                  "Type": "AWS::ECS::Service",
+                  "Properties": {
+                    "TaskDefinition": "${TASK_DEF_ARN}",
+                    "LoadBalancerInfo": {
+                      "ContainerName": "strapi",
+                      "ContainerPort": 1337
+                    }
+                  }
+                }
+              }
+            ]
+          }
+          EOF
+
+          # Escape and store the stringified JSON
+          CONTENT_STRING=$(jq -c . < appspec_content.json)
+
           cat <<EOF > revision.json
           {
             "applicationName": "${CODEDEPLOY_APP}",
@@ -75,27 +98,12 @@ jobs:
             "revision": {
               "revisionType": "AppSpecContent",
               "appSpecContent": {
-                "content": {
-                  "version": 1,
-                  "Resources": [
-                    {
-                      "TargetService": {
-                        "Type": "AWS::ECS::Service",
-                        "Properties": {
-                          "TaskDefinition": "${TASK_DEF_ARN}",
-                          "LoadBalancerInfo": {
-                            "ContainerName": "strapi",
-                            "ContainerPort": 1337
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
+                "content": $CONTENT_STRING
               }
             }
           }
           EOF
+
 
       - name: Trigger CodeDeploy deployment
         run: |
