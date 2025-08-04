@@ -64,33 +64,35 @@ jobs:
           echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
           echo "task_def_arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
 
-      - name: Generate AppSpec content
+      - name: Generate AppSpec and Revision content
         run: |
-          cat <<EOF > appspec.json
-          {
-            "version": 1,
-            "Resources": [
-              {
-                "TargetService": {
-                  "Type": "AWS::ECS::Service",
-                  "Properties": {
-                    "TaskDefinition": "${{ env.TASK_DEF_ARN }}",
-                    "LoadBalancerInfo": {
-                      "ContainerName": "strapi",
-                      "ContainerPort": 1337
-                    }
-                  }
-                }
-              }
-            ]
-          }
-          EOF
-
           cat <<EOF > revision.json
           {
-            "revisionType": "AppSpecContent",
-            "appSpecContent": {
-              "content": $(cat appspec.json)
+            "applicationName": "${CODEDEPLOY_APP}",
+            "deploymentGroupName": "${CODEDEPLOY_GROUP}",
+            "deploymentConfigName": "CodeDeployDefault.ECSAllAtOnce",
+            "description": "Blue/Green Deployment from GitHub Actions",
+            "revision": {
+              "revisionType": "AppSpecContent",
+              "appSpecContent": {
+                "content": {
+                  "version": 1,
+                  "Resources": [
+                    {
+                      "TargetService": {
+                        "Type": "AWS::ECS::Service",
+                        "Properties": {
+                          "TaskDefinition": "${TASK_DEF_ARN}",
+                          "LoadBalancerInfo": {
+                            "ContainerName": "strapi",
+                            "ContainerPort": 1337
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
             }
           }
           EOF
@@ -98,8 +100,5 @@ jobs:
       - name: Trigger CodeDeploy deployment
         run: |
           aws deploy create-deployment \
-            --application-name $CODEDEPLOY_APP \
-            --deployment-group-name $CODEDEPLOY_GROUP \
-            --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
-            --description "Blue/Green Deployment from GitHub Actions"\
             --cli-input-json file://revision.json
+
