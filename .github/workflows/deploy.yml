@@ -93,6 +93,5 @@ jobs:
           aws deploy create-deployment \
             --application-name $CODEDEPLOY_APP \
             --deployment-group-name $CODEDEPLOY_GROUP \
-            --revision file://codedeploy-revision.json \
             --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
             --description "Deploy commit $IMAGE_TAG via GitHub Actions"
