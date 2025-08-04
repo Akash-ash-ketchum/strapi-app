@@ -101,6 +101,12 @@ jobs:
           aws deploy create-deployment \
             --application-name $CODEDEPLOY_APP \
             --deployment-group-name $CODEDEPLOY_GROUP \
-            --revision file://codedeploy-revision.json \
             --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
             --description "Deploy commit $IMAGE_TAG via GitHub Actions"
+            --revision '{
+              "revisionType": "AppSpecContent",
+              "appSpecContent": {
+                "content": "{\"version\":1,\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ steps.task-def.outputs.taskDefArn }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"strapi\",\"ContainerPort\":1337}}}}]}"
+              }
+            }' \
+            --region $AWS_REGION
